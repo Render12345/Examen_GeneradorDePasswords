@@ -9,10 +9,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once '../core/Router.php';
-require_once '../core/Respuesta.php';
-require_once '../resources/v1/GeneradorResource.php';
-require_once '../resources/v1/ValidadorResource.php';
+require_once __DIR__ . '/../core/Router.php';
+require_once __DIR__ . '/../core/Respuesta.php';
+require_once __DIR__ . '/../resources/v1/GeneradorResource.php';
+require_once __DIR__ . '/../resources/v1/ValidadorResource.php';
 
 $basePath = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
 
