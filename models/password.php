@@ -1,67 +1,42 @@
-<?php 
+<?php
+
 require_once __DIR__ . '/../config/ConfigLimites.php';
+require_once __DIR__ . '/GenPassword.php';
 
 class Password
 {
-    private int    $length;
-    private bool   $includeUppercase;
-    private bool   $includeLowercase;
-    private bool   $includeNumbers;
-    private bool   $includeSymbols;
-    private bool   $excludeAmbiguous;
-    private string $customExclusions;
-
-    private const UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    private const LOWERCASE = 'abcdefghijklmnopqrstuvwxyz';
-    private const NUMBERS   = '0123456789';
-    private const SYMBOLS   = '!@#$%^&*()-_=+[]{}|;:,.<>?';
-    private const AMBIGUOUS = '0Ol1I';
+    private int   $length;
+    private array $opts;
 
     public function __construct(array $options = [])
     {
-        $this->length           = $options['length']           ?? ConfigLimites::DEFAULT_LENGTH;
-        $this->includeUppercase = $options['includeUppercase'] ?? true;
-        $this->includeLowercase = $options['includeLowercase'] ?? true;
-        $this->includeNumbers   = $options['includeNumbers']   ?? true;
-        $this->includeSymbols   = $options['includeSymbols']   ?? false;
-        $this->excludeAmbiguous = $options['excludeAmbiguous'] ?? false;
-        $this->customExclusions = $options['exclude']          ?? '';
+        $this->length = $options['length'] ?? ConfigLimites::DEFAULT_LENGTH;
+
+        // Traduce parámetros de la API → formato de GenPassword.php
+        $this->opts = [
+            'upper'           => $options['includeUppercase'] ?? true,
+            'lower'           => $options['includeLowercase'] ?? true,
+            'digits'          => $options['includeNumbers']   ?? true,
+            'symbols'         => $options['includeSymbols']   ?? false,
+            'avoid_ambiguous' => $options['excludeAmbiguous'] ?? false,
+            'exclude'         => $options['exclude']          ?? '',
+            'require_each'    => true,
+        ];
     }
 
-    // ── Genera una contraseña ────────────────────────────────────────
+    // ── Una contraseña ───────────────────────────────────────────────
     public function generate(): string
     {
-        $charset = $this->buildCharset();
-
-        if (strlen($charset) === 0) {
-            throw new InvalidArgumentException(
-                'El conjunto de caracteres está vacío. Activa al menos un tipo.'
-            );
-        }
-
-        // Garantiza al menos 1 char de cada tipo habilitado
-        $password = $this->buildRequired();
-
-        // Rellena hasta la longitud deseada
-        $maxIndex = strlen($charset) - 1;
-        while (strlen($password) < $this->length) {
-            $password .= $charset[random_int(0, $maxIndex)];
-        }
-
-        return $this->cryptoShuffle($password);
+        return generate_password($this->length, $this->opts);
     }
 
-    // ── Genera N contraseñas ─────────────────────────────────────────
+    // ── Múltiples contraseñas ────────────────────────────────────────
     public function generateMany(int $count): array
     {
-        $results = [];
-        for ($i = 0; $i < $count; $i++) {
-            $results[] = $this->generate();
-        }
-        return $results;
+        return generate_passwords($count, $this->length, $this->opts);
     }
 
-    // ── Valida una contraseña contra requisitos ──────────────────────
+    // ── Validación + análisis de fortaleza ───────────────────────────
     public static function validate(string $password, array $requirements): array
     {
         $minLength        = $requirements['minLength']        ?? 8;
@@ -87,60 +62,6 @@ class Password
             'entropy'  => round($entropy, 2),
             'strength' => $strength,
         ];
-    }
-
-    // ── Privados ─────────────────────────────────────────────────────
-    private function buildCharset(): string
-    {
-        $charset = '';
-        if ($this->includeUppercase) $charset .= self::UPPERCASE;
-        if ($this->includeLowercase) $charset .= self::LOWERCASE;
-        if ($this->includeNumbers)   $charset .= self::NUMBERS;
-        if ($this->includeSymbols)   $charset .= self::SYMBOLS;
-
-        if ($this->excludeAmbiguous) {
-            $charset = str_replace(str_split(self::AMBIGUOUS), '', $charset);
-        }
-        if ($this->customExclusions !== '') {
-            $charset = str_replace(str_split($this->customExclusions), '', $charset);
-        }
-
-        return $charset;
-    }
-
-    private function buildRequired(): string
-    {
-        $required = [];
-        $pools    = [];
-
-        if ($this->includeUppercase) $pools[] = self::UPPERCASE;
-        if ($this->includeLowercase) $pools[] = self::LOWERCASE;
-        if ($this->includeNumbers)   $pools[] = self::NUMBERS;
-        if ($this->includeSymbols)   $pools[] = self::SYMBOLS;
-
-        foreach ($pools as $pool) {
-            if ($this->excludeAmbiguous) {
-                $pool = str_replace(str_split(self::AMBIGUOUS), '', $pool);
-            }
-            if ($this->customExclusions !== '') {
-                $pool = str_replace(str_split($this->customExclusions), '', $pool);
-            }
-            if (strlen($pool) > 0) {
-                $required[] = $pool[random_int(0, strlen($pool) - 1)];
-            }
-        }
-
-        return implode('', $required);
-    }
-
-    private function cryptoShuffle(string $str): string
-    {
-        $arr = str_split($str);
-        for ($i = count($arr) - 1; $i > 0; $i--) {
-            $j          = random_int(0, $i);
-            [$arr[$i], $arr[$j]] = [$arr[$j], $arr[$i]];
-        }
-        return implode('', $arr);
     }
 
     private static function calcEntropy(string $password): float

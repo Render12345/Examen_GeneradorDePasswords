@@ -21,8 +21,8 @@ $router = new Router('v1', $basePath);
 $generadorResource = new GeneradorResource();
 $validadorResource = new ValidadorResource();
 
-$router->addRoute('GET', '/password', [$generadorResource, 'handleSingle']);
-$router->addRoute('POST', '/passwords', [$generadorResource, 'handleBatch']);
+$router->addRoute('GET',  '/password',          [$generadorResource, 'handleSingle']);
+$router->addRoute('POST', '/passwords',         [$generadorResource, 'handleBatch']);
 $router->addRoute('POST', '/password/validate', [$validadorResource, 'handle']);
 
 $router->dispatch();
