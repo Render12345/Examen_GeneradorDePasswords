@@ -1,0 +1,415 @@
+openapi: 3.0.3
+
+info:
+  title: API Generadora de Contraseñas Seguras
+  description: >
+    API REST para generar contraseñas seguras con diferentes niveles de
+    complejidad y validar la fortaleza de contraseñas existentes.
+  version: 1.0.0
+  contact:
+    name: Jorge Perez
+    email: jorge@example.com
+
+servers:
+  - url: http://localhost/v1
+    description: Servidor de desarrollo local
+
+tags:
+  - name: Generador
+    description: Endpoints para generar contraseñas
+  - name: Validador
+    description: Endpoints para validar contraseñas
+
+paths:
+
+  /password:
+    get:
+      tags:
+        - Generador
+      summary: Generar una contraseña
+      description: Genera una contraseña segura con los parámetros indicados via query string.
+      parameters:
+        - $ref: '#/components/parameters/length'
+        - $ref: '#/components/parameters/includeUppercase'
+        - $ref: '#/components/parameters/includeLowercase'
+        - $ref: '#/components/parameters/includeNumbers'
+        - $ref: '#/components/parameters/includeSymbols'
+        - $ref: '#/components/parameters/excludeAmbiguous'
+        - $ref: '#/components/parameters/exclude'
+      responses:
+        '200':
+          description: Contraseña generada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessPasswordSingle'
+              example:
+                success: true
+                message: Contraseña generada
+                data:
+                  password: "aB3kR7mNpQ2x"
+                  length: 12
+                  options:
+                    length: 12
+                    includeUppercase: true
+                    includeLowercase: true
+                    includeNumbers: true
+                    includeSymbols: false
+                    excludeAmbiguous: false
+                    exclude: ""
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /passwords:
+    post:
+      tags:
+        - Generador
+      summary: Generar múltiples contraseñas
+      description: Genera un lote de contraseñas seguras en una sola petición.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchRequest'
+            example:
+              count: 5
+              length: 16
+              includeSymbols: true
+              excludeAmbiguous: true
+      responses:
+        '200':
+          description: Contraseñas generadas exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessPasswordBatch'
+              example:
+                success: true
+                message: "5 contraseñas generadas"
+                data:
+                  passwords:
+                    - "aB3k!R7mNpQ2x@Zw"
+                    - "Xp9#mKv2Rq4nTs7W"
+                    - "Yw8$bNc3Jd6hPr5M"
+                    - "Lf2^gVs4Qt8mBx9K"
+                    - "Hn7&jRp5Wd3kCz6T"
+                  count: 5
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /password/validate:
+    post:
+      tags:
+        - Validador
+      summary: Validar fortaleza de una contraseña
+      description: >
+        Verifica si una contraseña cumple con los requisitos especificados
+        y devuelve análisis de entropía y nivel de fortaleza.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateRequest'
+            example:
+              password: "MiContraseña123!"
+              requirements:
+                minLength: 8
+                requireUppercase: true
+                requireLowercase: true
+                requireNumbers: true
+                requireSymbols: true
+      responses:
+        '200':
+          description: Validación realizada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessValidation'
+              example:
+                success: true
+                message: Contraseña válida
+                data:
+                  valid: true
+                  checks:
+                    length: true
+                    uppercase: true
+                    lowercase: true
+                    numbers: true
+                    symbols: true
+                  entropy: 104.12
+                  strength: fuerte
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+
+  parameters:
+    length:
+      name: length
+      in: query
+      description: Longitud de la contraseña (entre 4 y 128)
+      required: false
+      schema:
+        type: integer
+        minimum: 4
+        maximum: 128
+        default: 12
+      example: 12
+
+    includeUppercase:
+      name: includeUppercase
+      in: query
+      description: Incluir letras mayúsculas [A-Z]
+      required: false
+      schema:
+        type: boolean
+        default: true
+
+    includeLowercase:
+      name: includeLowercase
+      in: query
+      description: Incluir letras minúsculas [a-z]
+      required: false
+      schema:
+        type: boolean
+        default: true
+
+    includeNumbers:
+      name: includeNumbers
+      in: query
+      description: Incluir números [0-9]
+      required: false
+      schema:
+        type: boolean
+        default: true
+
+    includeSymbols:
+      name: includeSymbols
+      in: query
+      description: Incluir símbolos especiales
+      required: false
+      schema:
+        type: boolean
+        default: false
+
+    excludeAmbiguous:
+      name: excludeAmbiguous
+      in: query
+      description: Excluir caracteres ambiguos (0, O, l, 1, I)
+      required: false
+      schema:
+        type: boolean
+        default: false
+
+    exclude:
+      name: exclude
+      in: query
+      description: Caracteres específicos a excluir
+      required: false
+      schema:
+        type: string
+        default: ""
+      example: "abAB12"
+
+  schemas:
+
+    PasswordOptions:
+      type: object
+      properties:
+        length:
+          type: integer
+          minimum: 4
+          maximum: 128
+          default: 12
+        includeUppercase:
+          type: boolean
+          default: true
+        includeLowercase:
+          type: boolean
+          default: true
+        includeNumbers:
+          type: boolean
+          default: true
+        includeSymbols:
+          type: boolean
+          default: false
+        excludeAmbiguous:
+          type: boolean
+          default: false
+        exclude:
+          type: string
+          default: ""
+
+    BatchRequest:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 1
+          description: Número de contraseñas a generar
+        length:
+          type: integer
+          minimum: 4
+          maximum: 128
+          default: 12
+        includeUppercase:
+          type: boolean
+          default: true
+        includeLowercase:
+          type: boolean
+          default: true
+        includeNumbers:
+          type: boolean
+          default: true
+        includeSymbols:
+          type: boolean
+          default: false
+        excludeAmbiguous:
+          type: boolean
+          default: false
+        exclude:
+          type: string
+          default: ""
+
+    ValidateRequest:
+      type: object
+      required:
+        - password
+      properties:
+        password:
+          type: string
+          description: Contraseña a validar
+          example: "MiContraseña123!"
+        requirements:
+          type: object
+          properties:
+            minLength:
+              type: integer
+              default: 8
+            requireUppercase:
+              type: boolean
+              default: false
+            requireLowercase:
+              type: boolean
+              default: false
+            requireNumbers:
+              type: boolean
+              default: false
+            requireSymbols:
+              type: boolean
+              default: false
+
+    ValidationChecks:
+      type: object
+      properties:
+        length:
+          type: boolean
+        uppercase:
+          type: boolean
+        lowercase:
+          type: boolean
+        numbers:
+          type: boolean
+        symbols:
+          type: boolean
+
+    SuccessPasswordSingle:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Contraseña generada
+        data:
+          type: object
+          properties:
+            password:
+              type: string
+              example: "aB3kR7mNpQ2x"
+            length:
+              type: integer
+              example: 12
+            options:
+              $ref: '#/components/schemas/PasswordOptions'
+
+    SuccessPasswordBatch:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "5 contraseñas generadas"
+        data:
+          type: object
+          properties:
+            passwords:
+              type: array
+              items:
+                type: string
+              example: ["aB3k!R7m", "Xp9#mKv2"]
+            count:
+              type: integer
+              example: 5
+
+    SuccessValidation:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Contraseña válida
+        data:
+          type: object
+          properties:
+            valid:
+              type: boolean
+            checks:
+              $ref: '#/components/schemas/ValidationChecks'
+            entropy:
+              type: number
+              format: float
+              example: 104.12
+            strength:
+              type: string
+              enum:
+                - muy débil
+                - débil
+                - moderada
+                - fuerte
+                - muy fuerte
+              example: fuerte
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: boolean
+          example: true
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "length debe estar entre 4 y 128 caracteres."
+
+  responses:
+    BadRequest:
+      description: Parámetros inválidos o fuera de rango
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            code: 400
+            message: "length debe estar entre 4 y 128 caracteres."

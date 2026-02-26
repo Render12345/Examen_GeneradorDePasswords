@@ -98,7 +98,6 @@ function generate_password(int $length = 16, array $opts = []): string
     return shuffle_secure(implode('', $password_chars));
 }
 
-// ── COMPLETADA ────────────────────────────────────────────────────────
 function generate_passwords(int $count = 5, int $length = 16, array $opts = []): array
 {
     $passwords = [];
